@@ -1,0 +1,30 @@
+# Local Notes & Session Tracking (Do Not Track)
+Issuesappend.md
+sessions.md
+issue.md
+new.md
+
+# Ephemeral Scrape Output Folders & Files
+fandom_data_*/
+*.txt
+*.md
+!README.md
+!prompt.md
+!docs/*.md
+!docs/**/*.md
+
+# Python & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+venv/
+ENV/
+env/
+
+# IDE & OS Artifacts
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

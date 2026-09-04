@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FallenWiki Crawler</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="description" content="Export Fandom / MediaWiki pages to clean text or markdown" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ── Design Tokens ── */
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+      --radius: 8px;
+      --transition: 0.2s ease;
+    }
+
+    /* ── Light Theme ── */
+    [data-theme="light"] {
+      --surface-0: #f5f5f7;
+      --surface-1: #ffffff;
+      --surface-2: #f0f0f3;
+      --text-primary: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-muted: #a1a1a6;
+      --border: #d2d2d7;
+      --border-strong: #c6c6cb;
+      --bg-accent: rgba(0, 122, 255, 0.08);
+      --border-accent: rgba(0, 122, 255, 0.3);
+      --fill-accent: #007aff;
+      --fill-accent-hover: #0066d6;
+      --text-accent: #007aff;
+      --on-accent: #ffffff;
+      --text-success: #248a3d;
+      --bg-success: rgba(36, 138, 61, 0.08);
+      --border-success: rgba(36, 138, 61, 0.25);
+      --text-warning: #b25000;
+      --bg-warning: rgba(178, 80, 0, 0.08);
+      --border-warning: rgba(178, 80, 0, 0.25);
+      --text-danger: #d70015;
+      --bg-danger: rgba(215, 0, 21, 0.08);
+      --border-danger: rgba(215, 0, 21, 0.25);
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --patreon-bg: #ff424d;
+      --patreon-hover: #e63946;
+    }
+
+    /* ── Dark Theme ── */
+    [data-theme="dark"] {
+      --surface-0: #0d0d0f;
+      --surface-1: #1a1a1e;
+      --surface-2: #242428;
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-muted: #6e6e73;
+      --border: #38383d;
+      --border-strong: #48484e;
+      --bg-accent: rgba(10, 132, 255, 0.12);
+      --border-accent: rgba(10, 132, 255, 0.4);
+      --fill-accent: #0a84ff;
+      --fill-accent-hover: #409cff;
+      --text-accent: #64d2ff;
+      --on-accent: #000000;
+      --text-success: #30d158;
+      --bg-success: rgba(48, 209, 88, 0.1);
+      --border-success: rgba(48, 209, 88, 0.3);
+      --text-warning: #ffd60a;
+      --bg-warning: rgba(255, 214, 10, 0.1);
+      --border-warning: rgba(255, 214, 10, 0.3);
+      --text-danger: #ff453a;
+      --bg-danger: rgba(255, 69, 58, 0.1);
+      --border-danger: rgba(255, 69, 58, 0.3);
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --patreon-bg: #ff424d;
+      --patreon-hover: #ff6b73;
+    }
+
+    /* ── Reset & Base ── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--surface-0);
+      color: var(--text-primary);
+      transition: background var(--transition), color var(--transition);
+      min-height: 100vh;
+    }
+
+    /* ── Two-Column Layout ── */
+    .page-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 0;
+      max-width: 1200px;
+      margin: 2rem auto;
+      min-height: calc(100vh - 4rem);
+      background: var(--surface-1);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .main-col {
+      padding: 2.5rem 2.5rem;
+      max-width: 100%;
+      width: 100%;
+    }
+
+    .side-col {
+      border-left: 1px solid var(--border);
+      background: transparent;
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: sticky;
+      top: 1.5rem;
+      height: calc(100vh - 3rem);
+      overflow-y: auto;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    @media (max-width: 900px) {
+      .page-layout {
+        grid-template-columns: 1fr;
+        margin: 1rem;
+        min-height: auto;
+        border-radius: 12px;
+      }
+
+      .side-col {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        position: static;
+        height: auto;
+        padding: 2rem 1.5rem;
+      }
+
+      .main-col {
+        padding: 2rem 1.5rem;
+      }
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .header-left .sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* ── Theme Toggle ── */
+    .theme-toggle {
+      width: 44px;
+      height: 24px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      position: relative;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--border-accent);
+    }
+
+    .theme-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--text-primary);
+      transition: transform var(--transition);
+    }
+
+    [data-theme="dark"] .theme-toggle::after {
+      transform: translateX(20px);
+    }
+
+    .theme-toggle .icon {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .theme-toggle .icon-sun {
+      left: 5px;
+    }
+
+    .theme-toggle .icon-moon {
+      right: 5px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+      transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+    }
+
+    /* ── Form Elements ── */
+    label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input[type=text] {
+      width: 100%;
+      height: 38px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      outline: none;
+      transition: all var(--transition);
+    }
+
+    input[type=text]::placeholder {
+      color: var(--text-muted);
+    }
+
+    input[type=text]:focus {
+      border-color: var(--fill-accent);
+      box-shadow: 0 0 0 3px var(--bg-accent);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .row.full {
+      grid-template-columns: 1fr;
+    }
+
+    /* ── Mode Toggle ── */
+    .mode-group {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border-radius: var(--radius);
+      padding: 3px;
+      margin-bottom: 14px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      height: 34px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .mode-btn.active {
+      background: var(--surface-1);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .mode-btn:hover:not(.active) {
+      color: var(--text-primary);
+    }
+
+    /* ── Format Toggle ── */
+    .fmt-group {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-2);
+      border-radius: var(--radius);
+      padding: 3px;
+    }
+
+    .fmt-btn {
+      flex: 1;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .fmt-btn.active {
+      background: var(--surface-1);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ── Slider ── */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .slider-row input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--surface-2);
+      outline: none;
+      transition: background var(--transition);
+    }
+
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--fill-accent);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      transition: transform 0.15s ease;
+    }
+
+    .slider-row input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .slider-row input[type=range]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--fill-accent);
+      cursor: pointer;
+      border: none;
+    }
+
+    .slider-value {
+      font-size: 13px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-primary);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── File Upload ── */
+    .file-drop {
+      width: 100%;
+      height: 38px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-drop:hover {
+      border-color: var(--border-accent);
+      color: var(--text-secondary);
+    }
+
+    .file-drop.has-file {
+      border-color: var(--border-success);
+      color: var(--text-success);
+      border-style: solid;
+    }
+
+    .file-drop input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* ── Buttons ── */
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      height: 38px;
+      padding: 0 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition);
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: var(--border-strong);
+      background: var(--surface-1);
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .btn.start {
+      background: var(--fill-accent);
+      border-color: var(--fill-accent);
+      color: var(--on-accent);
+    }
+
+    .btn.start:hover:not(:disabled) {
+      background: var(--fill-accent-hover);
+      border-color: var(--fill-accent-hover);
+    }
+
+    .btn.stop {
+      border-color: var(--border-danger);
+      color: var(--text-danger);
+    }
+
+    .btn.stop:hover:not(:disabled) {
+      background: var(--bg-danger);
+    }
+
+    /* ── Status ── */
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .stat span {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .timer {
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      transition: color var(--transition);
+    }
+
+    .timer.active {
+      color: var(--text-accent);
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      transition: all var(--transition);
+    }
+
+    .status-pill.running {
+      background: var(--bg-success);
+      border-color: var(--border-success);
+      color: var(--text-success);
+    }
+
+    .status-pill.paused {
+      background: var(--bg-warning);
+      border-color: var(--border-warning);
+      color: var(--text-warning);
+    }
+
+    .status-pill.stopped {
+      background: var(--bg-danger);
+      border-color: var(--border-danger);
+      color: var(--text-danger);
+    }
+
+    .status-pill.complete {
+      background: var(--bg-accent);
+      border-color: var(--border-accent);
+      color: var(--text-accent);
+    }
+
+    .status-pill.error {
+      background: var(--bg-danger);
+      border-color: var(--border-danger);
+      color: var(--text-danger);
+    }
+
+    /* ── Log Panel ── */
+    #log {
+      height: 280px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.8;
+      background: var(--surface-0);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      transition: all var(--transition);
+    }
+
+    #log::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #log::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #log::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .log-line {
+      padding: 1px 0;
+    }
+
+    .log-line.processing {
+      color: var(--text-secondary);
+    }
+
+    .log-line.success {
+      color: var(--text-success);
+    }
+
+    .log-line.error {
+      color: var(--text-danger);
+    }
+
+    .log-line.stopped {
+      color: var(--text-warning);
+    }
+
+    .log-line.complete {
+      color: var(--text-accent);
+    }
+
+    .log-line.info {
+      color: var(--text-muted);
+    }
+
+    /* ── Download ── */
+    .dl-btn {
+      width: 100%;
+      height: 40px;
+      margin-top: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-accent);
+      background: var(--bg-accent);
+      color: var(--text-accent);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all var(--transition);
+    }
+
+    .dl-btn:hover {
+      background: var(--fill-accent);
+      color: var(--on-accent);
+    }
+
+    #linksInput {
+      display: none;
+    }
+
+    /* ── About Sidebar ── */
+    .about-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      transition: border-color var(--transition), box-shadow var(--transition), transform 0.3s ease;
+      margin-bottom: 1rem;
+    }
+
+    .about-avatar:hover {
+      border-color: var(--fill-accent);
+      box-shadow: 0 0 20px rgba(10, 132, 255, 0.25);
+      transform: scale(1.05);
+    }
+
+    .about-name {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.25rem;
+      background: linear-gradient(135deg, var(--fill-accent), #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .about-divider {
+      width: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--fill-accent), #a855f7);
+      border: none;
+      border-radius: 1px;
+      margin: 1rem 0;
+    }
+
+    .about-bio {
+      font-size: 13.5px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 280px;
+    }
+
+    .about-bio p+p {
+      margin-top: 0.75rem;
+    }
+
+    .patreon-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 1.5rem;
+      padding: 10px 22px;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--patreon-bg);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all var(--transition);
+      box-shadow: 0 2px 8px rgba(255, 66, 77, 0.3);
+    }
+
+    .patreon-btn:hover {
+      background: var(--patreon-hover);
+      box-shadow: 0 4px 16px rgba(255, 66, 77, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .patreon-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .about-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      font-weight: 600;
+    }
+
+    /* ── sr-only ── */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="page-layout">
+    <!-- ═══ LEFT: Crawler ═══ -->
+    <div class="main-col">
+      <div class="header">
+        <div class="header-left">
+          <h1>FallenWiki Crawler</h1>
+          <p class="sub">Export Fandom / MediaWiki pages to clean text or markdown</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <a href="/" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:6px 12px; border-radius:8px; background:var(--surface-2); border:1px solid var(--border); color:var(--text-primary); text-decoration:none; transition:all var(--transition);" title="Back to Project Landing Page">← Landing Page</a>
+          <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <span class="icon icon-sun">&#9788;</span>
+            <span class="icon icon-moon">&#9790;</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <!-- Mode selector -->
+        <label>Crawl Mode</label>
+        <div class="mode-group">
+          <button class="mode-btn active" id="modeAll" onclick="setMode('all_pages')">All Pages</button>
+          <button class="mode-btn" id="modeLinks" onclick="setMode('links')">From Links</button>
+        </div>
+
+        <!-- URL input -->
+        <div class="row full" id="urlRow">
+          <div>
+            <label id="urlLabel">Wiki Base URL</label>
+            <input type="text" id="wikiUrl" placeholder="https://example.fandom.com" />
+          </div>
+        </div>
+
+        <!-- File upload (Links mode only) -->
+        <div class="row full" id="linksInput">
+          <div>
+            <label>Upload Link List (.txt / .md)</label>
+            <div class="file-drop" id="fileDrop">
+              <span id="fileLabel">Choose file or drag here</span>
+              <input type="file" id="fileInput" accept=".txt,.md,.text" onchange="onFileSelect(this)" />
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Output Filename (optional)</label>
+            <input type="text" id="filename" placeholder="my_wiki" />
+          </div>
+          <div>
+            <label>Output Format</label>
+            <div class="fmt-group">
+              <button class="fmt-btn active" id="fmtTxt" onclick="setFmt('txt')">TXT</button>
+              <button class="fmt-btn" id="fmtMd" onclick="setFmt('md')">MD</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Crawl delay slider -->
+        <label>Crawl Delay</label>
+        <div class="slider-row">
+          <input type="range" id="sleepSlider" min="0.5" max="10" step="0.5" value="1.0" oninput="updateSliderLabel(this)" />
+          <span class="slider-value" id="sleepValue">1.0s</span>
+        </div>
+
+        <div class="controls">
+          <button class="btn start" id="btnStart" onclick="startJob()">&#9654; Start</button>
+          <button class="btn" id="btnPause" disabled onclick="pauseJob()">&#10074;&#10074; Pause</button>
+          <button class="btn" id="btnResume" disabled onclick="resumeJob()">&#8635; Resume</button>
+          <button class="btn stop" id="btnStop" disabled onclick="stopJob()">&#9632; Stop</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="stat-row">
+          <p class="stat">Pages: <span id="counter">0 / &mdash;</span></p>
+          <span class="timer" id="timer">00:00</span>
+          <span class="status-pill" id="statusPill">Idle</span>
+        </div>
+        <div id="log"><span class="log-line info">Waiting to start...</span></div>
+        <div id="dlWrap" style="display:none">
+          <button class="dl-btn" id="dlBtn" onclick="downloadFile()">
+            <span id="dlLabel">Download .txt</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RIGHT: About ═══ -->
+    <aside class="side-col">
+      <img src="/logo.png" alt="Fallen_Archangel_ avatar" class="about-avatar" />
+      <h2 class="about-name">Fallen_Archangel_</h2>
+      <hr class="about-divider" />
+      <div class="about-bio">
+        <p>I'm mostly just a huge fan of reading who decided to start sharing the good stuff with everyone else.</p>
+        <p>I started Fanfic Corner because I love finding hidden gems and wanted to make them accessible to more people.
+          It's pretty simple: I find stories I love, translate them, and post them here so you can enjoy them too.</p>
+      </div>
+      <a href="https://www.patreon.com/cw/Fallen_Archangel_" target="_blank" rel="noopener noreferrer"
+        class="patreon-btn" id="patreonBtn">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M14.82 2.41c3.96 0 7.18 3.24 7.18 7.21 0 3.96-3.22 7.18-7.18 7.18-3.97 0-7.21-3.22-7.21-7.18 0-3.97 3.24-7.21 7.21-7.21M2 21.6h3.5V2.41H2V21.6z" />
+        </svg>
+        Support me on Patreon
+      </a>
+    </aside>
+  </div>
+
+  <script>
+    /* ── State ── */
+    let jobId = null;
+    let fmt = 'txt';
+    let mode = 'all_pages';
+    let processed = 0;
+    let total = 0;
+    let abortCtrl = null;
+
+    /* ── Timer State ── */
+    let timerInterval = null;
+    let timerElapsed = 0;  // seconds accumulated
+    let timerStart = null; // Date.now() when last started/resumed
+
+    function formatTime(sec) {
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      const mm = String(m).padStart(2, '0');
+      const ss = String(s).padStart(2, '0');
+      return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+    }
+
+    function tickTimer() {
+      const now = Math.floor((Date.now() - timerStart) / 1000) + timerElapsed;
+      document.getElementById('timer').textContent = formatTime(now);
+    }
+
+    function startTimer() {
+      timerElapsed = 0;
+      timerStart = Date.now();
+      document.getElementById('timer').textContent = '00:00';
+      document.getElementById('timer').classList.add('active');
+      timerInterval = setInterval(tickTimer, 1000);
+    }
+
+    function pauseTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      timerElapsed += Math.floor((Date.now() - timerStart) / 1000);
+      timerStart = null;
+    }
+
+    function resumeTimer() {
+      timerStart = Date.now();
+      timerInterval = setInterval(tickTimer, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      if (timerStart) {
+        timerElapsed += Math.floor((Date.now() - timerStart) / 1000);
+        timerStart = null;
+      }
+      document.getElementById('timer').classList.remove('active');
+      document.getElementById('timer').textContent = formatTime(timerElapsed);
+      return timerElapsed;
+    }
+
+    /* ── Theme ── */
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    }
+    (function () {
+      const saved = localStorage.getItem('theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    /* ── Format Toggle ── */
+    function setFmt(f) {
+      fmt = f;
+      document.getElementById('fmtTxt').classList.toggle('active', f === 'txt');
+      document.getElementById('fmtMd').classList.toggle('active', f === 'md');
+      document.getElementById('dlLabel').textContent = 'Download .' + f;
+    }
+
+    /* ── Mode Toggle ── */
+    function setMode(m) {
+      mode = m;
+      document.getElementById('modeAll').classList.toggle('active', m === 'all_pages');
+      document.getElementById('modeLinks').classList.toggle('active', m === 'links');
+
+      const linksInput = document.getElementById('linksInput');
+      const urlLabel = document.getElementById('urlLabel');
+      const urlInput = document.getElementById('wikiUrl');
+
+      if (m === 'all_pages') {
+        linksInput.style.display = 'none';
+        urlLabel.textContent = 'Wiki Base URL';
+        urlInput.placeholder = 'https://example.fandom.com';
+      } else {
+        linksInput.style.display = 'block';
+        urlLabel.textContent = 'Single Page URL (optional if uploading file)';
+        urlInput.placeholder = 'https://example.fandom.com/wiki/Page_Name';
+      }
+    }
+
+    /* ── File Select ── */
+    function onFileSelect(input) {
+      const drop = document.getElementById('fileDrop');
+      const label = document.getElementById('fileLabel');
+      if (input.files.length) {
+        drop.classList.add('has-file');
+        label.textContent = input.files[0].name;
+      } else {
+        drop.classList.remove('has-file');
+        label.textContent = 'Choose file or drag here';
+      }
+    }
+
+    /* ── Logging ── */
+    function log(msg, type = 'info') {
+      const el = document.getElementById('log');
+      const line = document.createElement('div');
+      line.className = 'log-line ' + type;
+      line.textContent = msg;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
+    function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+    /* ── UI Helpers ── */
+    function setStatus(s) {
+      const pill = document.getElementById('statusPill');
+      pill.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+      pill.className = 'status-pill ' + s;
+    }
+    function updateCounter() {
+      document.getElementById('counter').textContent = processed + ' / ' + (total || '\u2014');
+    }
+    function setButtons(state) {
+      const idle = state === 'idle' || state === 'done';
+      document.getElementById('btnStart').disabled = !idle;
+      document.getElementById('btnPause').disabled = state !== 'running';
+      document.getElementById('btnResume').disabled = state !== 'paused';
+      document.getElementById('btnStop').disabled = idle;
+    }
+
+    /* ── Start Job ── */
+    async function startJob() {
+      const url = document.getElementById('wikiUrl').value.trim();
+      const fileInput = document.getElementById('fileInput');
+      const hasFile = fileInput.files.length > 0;
+
+      if (mode === 'all_pages' && !url) { alert('Enter a wiki base URL'); return; }
+      if (mode === 'links' && !url && !hasFile) { alert('Enter a URL or upload a file with links'); return; }
+
+      clearLog();
+      processed = 0; total = 0;
+      updateCounter();
+      document.getElementById('dlWrap').style.display = 'none';
+
+      jobId = 'job-' + crypto.randomUUID().slice(0, 8);
+      setStatus('running');
+      setButtons('running');
+      startTimer();
+      log('Job started: ' + jobId, 'info');
+
+      const fd = new FormData();
+      fd.append('job_id', jobId);
+      fd.append('mode', mode);
+      fd.append('format', fmt);
+      fd.append('filename', document.getElementById('filename').value.trim());
+      fd.append('sleep', document.getElementById('sleepSlider').value);
+      if (url) fd.append('url', url);
+      if (hasFile) fd.append('file', fileInput.files[0]);
+
+      abortCtrl = new AbortController();
+
+      try {
+        const res = await fetch('/stream', { method: 'POST', body: fd, signal: abortCtrl.signal });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop();
+
+          for (const part of parts) {
+            const line = part.replace(/^data:\s*/, '').trim();
+            if (!line) continue;
+            try {
+              const d = JSON.parse(line);
+              const t = d.type;
+              const m = d.message || '';
+
+              const match = m.match(/\[(\d+)\/(\d+)\]/);
+              if (match) { processed = parseInt(match[1]); total = parseInt(match[2]); updateCounter(); }
+
+              log(m, t);
+
+              if (t === 'complete') {
+                const elapsed = stopTimer();
+                setStatus('complete'); setButtons('done');
+                document.getElementById('dlWrap').style.display = 'block';
+                document.getElementById('dlLabel').textContent = 'Download .' + fmt;
+                log('⏱ Total time: ' + formatTime(elapsed), 'complete');
+              }
+              if (t === 'stopped') {
+                const elapsed = stopTimer();
+                setStatus('stopped'); setButtons('done');
+                document.getElementById('dlWrap').style.display = 'block';
+                log('⏱ Total time: ' + formatTime(elapsed), 'stopped');
+              }
+              if (t === 'error' && !m.startsWith('\u2717')) {
+                stopTimer();
+                setStatus('error'); setButtons('done');
+              }
+            } catch (_) { }
+          }
+        }
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          stopTimer();
+          log('Connection error: ' + e.message, 'error');
+          setStatus('error'); setButtons('done');
+        }
+      }
+    }
+
+    /* ── Job Controls ── */
+    async function pauseJob() {
+      await fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_id: jobId, action: 'pause' }) });
+      pauseTimer();
+      setStatus('paused'); setButtons('paused');
+    }
+    async function resumeJob() {
+      await fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_id: jobId, action: 'resume' }) });
+      resumeTimer();
+      setStatus('running'); setButtons('running');
+    }
+    async function stopJob() {
+      await fetch('/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job_id: jobId, action: 'stop' }) });
+    }
+    function downloadFile() {
+      window.location.href = '/download-result/' + jobId;
+      setTimeout(() => { setButtons('idle'); setStatus('idle'); }, 1000);
+    }
+
+    /* ── Slider ── */
+    function updateSliderLabel(el) {
+      document.getElementById('sleepValue').textContent = parseFloat(el.value).toFixed(1) + 's';
+    }
+  </script>
+
+</body>
+
+</html>
