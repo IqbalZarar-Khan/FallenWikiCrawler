@@ -834,36 +834,45 @@ def health():
 @app.get("/", response_class=HTMLResponse)
 async def landing():
     """Serve the Digital Scriptorium marketing and landing page."""
-    landing_path = os.path.join(BASE_DIR, "landing.html")
-    index_path = os.path.join(BASE_DIR, "index.html")
-    if os.path.exists(landing_path):
-        with open(landing_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    if os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse("<h1>FallenWiki Crawler</h1><p>Server running.</p>")
+    try:
+        landing_path = os.path.join(BASE_DIR, "landing.html")
+        index_path = os.path.join(BASE_DIR, "index.html")
+        if os.path.exists(landing_path):
+            with open(landing_path, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
+        return HTMLResponse("<h1>FallenWiki Crawler</h1><p>Server running.</p>")
+    except Exception as e:
+        return HTMLResponse(f"<h1>FallenWiki Crawler</h1><p>Error: {str(e)}</p>", status_code=200)
 
 
 @app.get("/crawler", response_class=HTMLResponse)
 @app.get("/app", response_class=HTMLResponse)
 async def crawler_app():
     """Serve the interactive crawler application interface."""
-    index_path = os.path.join(BASE_DIR, "index.html")
-    if os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse("<h1>Crawler Tool</h1><p>index.html not found.</p>")
+    try:
+        index_path = os.path.join(BASE_DIR, "index.html")
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
+        return HTMLResponse("<h1>Crawler Tool</h1><p>index.html not found.</p>")
+    except Exception as e:
+        return HTMLResponse(f"<h1>Crawler Tool</h1><p>Error: {str(e)}</p>", status_code=200)
 
 
 @app.get("/logo.png")
 async def logo():
     """Serve the logo/avatar image."""
-    logo_path = os.path.join(BASE_DIR, "logo.png")
-    if os.path.exists(logo_path):
-        with open(logo_path, "rb") as f:
-            return Response(content=f.read(), media_type="image/png")
-    return Response(status_code=404)
+    try:
+        logo_path = os.path.join(BASE_DIR, "logo.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as f:
+                return Response(content=f.read(), media_type="image/png")
+        return Response(status_code=404)
+    except Exception:
+        return Response(status_code=404)
 
 
 @app.post("/control")
