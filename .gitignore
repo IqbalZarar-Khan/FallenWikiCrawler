@@ -7,6 +7,7 @@ new.md
 # Ephemeral Scrape Output Folders & Files
 fandom_data_*/
 *.txt
+!requirements.txt
 *.md
 !README.md
 !prompt.md

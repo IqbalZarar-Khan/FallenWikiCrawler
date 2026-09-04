@@ -657,7 +657,7 @@ def crawler_generator(job_id, mode, base_url=None, urls=None,
                        custom_filename=None, fmt="txt", sleep_sec=1.0):
     """Yields SSE `data:` lines with progress, errors, and completion."""
     unique_id = str(uuid.uuid4())[:8]
-    output_folder = f"fandom_data_{unique_id}"
+    output_folder = os.path.join(BASE_DIR, f"fandom_data_{unique_id}")
     os.makedirs(output_folder, exist_ok=True)
     set_job_folder(job_id, output_folder)
 
@@ -808,29 +808,59 @@ def crawler_generator(job_id, mode, base_url=None, urls=None,
 # ROUTES
 # =====================================================================
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+@app.on_event("startup")
+def startup_event():
+    """Cleanup leftover scratch folders from previous runs."""
+    try:
+        for folder in [f for f in os.listdir(BASE_DIR) if f.startswith('fandom_data_') and os.path.isdir(os.path.join(BASE_DIR, f))]:
+            shutil.rmtree(os.path.join(BASE_DIR, folder), ignore_errors=True)
+    except Exception:
+        pass
+
+
+@app.get("/health")
+@app.get("/healthz")
+def health():
+    """Cloud deployment health check endpoint."""
+    return {"status": "ok", "app": "FallenWiki Crawler"}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def landing():
     """Serve the Digital Scriptorium marketing and landing page."""
-    if os.path.exists("landing.html"):
-        with open("landing.html", "r", encoding="utf-8") as f:
+    landing_path = os.path.join(BASE_DIR, "landing.html")
+    index_path = os.path.join(BASE_DIR, "index.html")
+    if os.path.exists(landing_path):
+        with open(landing_path, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
-    with open("index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse("<h1>FallenWiki Crawler</h1><p>Server running.</p>")
 
 
 @app.get("/crawler", response_class=HTMLResponse)
 @app.get("/app", response_class=HTMLResponse)
 async def crawler_app():
     """Serve the interactive crawler application interface."""
-    with open("index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    index_path = os.path.join(BASE_DIR, "index.html")
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse("<h1>Crawler Tool</h1><p>index.html not found.</p>")
 
 
 @app.get("/logo.png")
 async def logo():
     """Serve the logo/avatar image."""
-    with open("logo.png", "rb") as f:
-        return Response(content=f.read(), media_type="image/png")
+    logo_path = os.path.join(BASE_DIR, "logo.png")
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as f:
+            return Response(content=f.read(), media_type="image/png")
+    return Response(status_code=404)
 
 
 @app.post("/control")
