@@ -8,6 +8,7 @@ import gc
 import html
 import threading
 import unicodedata
+from contextlib import asynccontextmanager
 from html.parser import HTMLParser
 from urllib.parse import unquote, urlparse, quote
 
@@ -17,7 +18,21 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import requests
 
-app = FastAPI()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Cleanup leftover scratch folders from previous runs."""
+    try:
+        for folder in [f for f in os.listdir(BASE_DIR) if f.startswith('fandom_data_') and os.path.isdir(os.path.join(BASE_DIR, f))]:
+            shutil.rmtree(os.path.join(BASE_DIR, folder), ignore_errors=True)
+    except Exception:
+        pass
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Enable CORS
 app.add_middleware(
@@ -807,18 +822,6 @@ def crawler_generator(job_id, mode, base_url=None, urls=None,
 # =====================================================================
 # ROUTES
 # =====================================================================
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-@app.on_event("startup")
-def startup_event():
-    """Cleanup leftover scratch folders from previous runs."""
-    try:
-        for folder in [f for f in os.listdir(BASE_DIR) if f.startswith('fandom_data_') and os.path.isdir(os.path.join(BASE_DIR, f))]:
-            shutil.rmtree(os.path.join(BASE_DIR, folder), ignore_errors=True)
-    except Exception:
-        pass
 
 
 @app.get("/health")
