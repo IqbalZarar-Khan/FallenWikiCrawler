@@ -999,7 +999,10 @@ def download_result(job_id: str):
 
 if __name__ == "__main__":
     HOST = os.environ.get("HOST", "0.0.0.0")
-    PORT = int(os.environ.get("PORT", 8000))
+    try:
+        PORT = int(os.environ.get("PORT", "8000"))
+    except (ValueError, TypeError):
+        PORT = 8000
 
     # Cleanup leftover folders from previous runs
     for folder in [f for f in os.listdir('.') if f.startswith('fandom_data_') and os.path.isdir(f)]:

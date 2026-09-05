@@ -27,22 +27,45 @@ It is purpose-built for:
 
 ---
 
-## 🚀 Accessing and Using the Tool
+## 🚀 Quick Start & Deployment
 
-The crawler is hosted directly by the application on your local machine with a responsive, zero-dependency web interface.
+### 1. Local Deployment (One-Click)
+- **Windows**: Double-click `run.bat` (or run in cmd):
+  ```cmd
+  run.bat
+  ```
+- **macOS / Linux**:
+  ```bash
+  chmod +x run.sh
+  ./run.sh
+  ```
+- **Manual Python**:
+  ```bash
+  pip install -r requirements.txt
+  python main.py
+  ```
+Open **[http://localhost:8000](http://localhost:8000)** for the Landing Page or **[http://localhost:8000/crawler](http://localhost:8000/crawler)** for the Crawler Tool.
 
-### Step 1: Install Dependencies
-```bash
-pip install fastapi uvicorn requests
-```
+---
 
-### Step 2: Start the Application Server
-```bash
-python app.py
-```
+### 2. Cloud Deployments
 
-### Step 3: Open the Tool in Your Browser
-Navigate to **[http://localhost:8000](http://localhost:8000)** (or `http://127.0.0.1:8000`).
+- **Railway**: Connect your GitHub repository. Railway reads `railway.json` and configures builds automatically.
+- **Render**: Connect repository via **New Blueprint Instance** (`render.yaml`).
+- **Docker**:
+  ```bash
+  docker build -t fallenwiki-crawler .
+  docker run -d -p 8000:8000 fallenwiki-crawler
+  ```
+- **Generic Cloud (Nept / Koyeb / Fly.io / Heroku)**:
+  - **Build Command**: `pip install -r requirements.txt`
+  - **Start Command**: `python main.py`
+  - **Port**: `8000` (dynamically bound via `$PORT`)
+  - **Health Check**: `/health`
+
+---
+
+## 🖥️ Using the Interactive Crawler Tool
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -198,10 +221,17 @@ Comprehensive deep-dive guides with architecture blueprints, sequence diagrams, 
 ```
 .
 ├── app.py              # FastAPI server, MediaWiki crawler engine & SSE streamer
+├── main.py             # Cloud & CLI entrypoint with safe $PORT parsing
+├── landing.html        # Digital Scriptorium marketing & documentation landing page
 ├── index.html          # Interactive single-page web UI (HTML5 / CSS3 / Vanilla JS)
 ├── logo.png            # Brand avatar asset
-├── Issuesappend.md     # Local issue tracking ledger (git-ignored)
-├── sessions.md         # Developer session logs (git-ignored)
+├── requirements.txt    # Production Python dependencies
+├── Procfile            # Web process declaration for buildpack deployments
+├── Dockerfile          # Container build definition (python:3.11-slim)
+├── render.yaml         # Render Blueprint deployment configuration
+├── railway.json        # Railway deployment configuration
+├── run.bat             # One-click Windows local launcher
+├── run.sh              # One-click Linux/macOS local launcher
 ├── .gitignore          # Git ignore rules for local logs, scratch files & caches
 ├── README.md           # Project documentation & homepage (this file)
 └── docs/
