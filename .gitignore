@@ -3,6 +3,8 @@ Issuesappend.md
 sessions.md
 issue.md
 new.md
+prompt.md
+PRD.md
 
 # Ephemeral Scrape Output Folders & Files
 fandom_data_*/
@@ -10,7 +12,6 @@ fandom_data_*/
 !requirements.txt
 *.md
 !README.md
-!prompt.md
 !docs/*.md
 !docs/**/*.md
 
